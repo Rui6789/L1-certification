@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Storage System Testing · Self-Assessment</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F4E79">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ES Testing">
+<style>
+  :root{
+    --primary:#1F4E79; --primary2:#2E74B5; --bg:#f4f7fb;
+    --ok:#1e8449; --okbg:#e8f6ef; --bad:#c0392b; --badbg:#fdecea;
+    --gray:#595959; --line:#dbe3ec; --accent:#e67e22;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Segoe UI,"Microsoft YaHei",Arial,sans-serif;
+       background:var(--bg);color:#262626;line-height:1.6;font-size:15px;}
+  .wrap{max-width:920px;margin:0 auto;padding:18px 14px 80px;}
+
+  header.top{background:linear-gradient(135deg,var(--primary),var(--primary2));
+             color:#fff;padding:20px 22px;border-radius:14px;box-shadow:0 4px 14px rgba(31,78,121,.25);}
+  header.top h1{margin:0;font-size:22px;font-weight:700;}
+  header.top .sub{opacity:.92;font-size:13px;margin-top:4px;}
+
+  /* ---------- Views ---------- */
+  .view{margin-top:18px;}
+  .hidden{display:none !important;}
+
+  .hero{text-align:center;padding:8px 0 14px;}
+  .hero h2{margin:0 0 4px;color:var(--primary);font-size:19px;}
+  .hero p{margin:0;color:var(--gray);font-size:13px;}
+
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0;}
+  .mode-card{background:#fff;border:2px solid var(--line);border-radius:12px;padding:18px 16px;cursor:pointer;
+             text-align:left;transition:.15s;font-family:inherit;}
+  .mode-card:hover{border-color:var(--primary2);box-shadow:0 4px 12px rgba(46,116,181,.18);transform:translateY(-1px);}
+  .mode-card .mt{font-weight:700;color:var(--primary);font-size:17px;}
+  .mode-card .ms{color:var(--gray);font-size:13px;margin-top:4px;}
+
+  .sec-title{color:var(--primary);font-size:16px;margin:22px 0 10px;border-bottom:2px solid var(--line);padding-bottom:8px;}
+
+  .chap-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .chap-card{background:#fff;border:2px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;
+             font-family:inherit;text-align:left;transition:.15s;}
+  .chap-card:hover{border-color:var(--primary2);background:#f7fafd;}
+  .chap-card .cn{font-size:12px;font-weight:700;color:var(--primary2);}
+  .chap-card .ct{font-weight:600;color:#262626;margin:3px 0;}
+  .chap-card .cc{font-size:12px;color:var(--gray);}
+
+  /* ---------- Quiz bar ---------- */
+  .quizbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;
+           border-radius:10px;padding:10px 14px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);position:sticky;top:6px;z-index:5;}
+  .quizbar .info{font-size:13px;color:var(--gray);flex:1;min-width:160px;}
+  .quizbar .info b{color:var(--primary);}
+  .timer{background:#eaf1f8;color:var(--primary);padding:7px 12px;border-radius:8px;font-weight:700;
+         font-variant-numeric:tabular-nums;font-size:14px;}
+
+  .btn{cursor:pointer;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600;font-family:inherit;transition:.15s;}
+  .btn-primary{background:var(--primary);color:#fff;}
+  .btn-primary:hover{background:#163a5e;}
+  .btn-primary:disabled{background:#9fb2c5;cursor:not-allowed;}
+  .btn-ghost{background:#eaf1f8;color:var(--primary);}
+  .btn-ghost:hover{background:#d8e6f2;}
+  .btn-back{background:transparent;color:var(--gray);font-weight:600;}
+  .btn-back:hover{color:var(--primary);}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .btn-accent:hover{background:#ca6a14;}
+
+  /* ---------- Questions ---------- */
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;}
+  #result{display:none;background:#fff;border-radius:12px;padding:20px;text-align:center;
+          box-shadow:0 2px 10px rgba(0,0,0,.06);border:2px solid var(--primary);margin-top:14px;}
+  #result .big{font-size:32px;font-weight:700;color:var(--primary);}
+  #result .pct{font-size:17px;color:var(--primary2);margin:6px 0;}
+  #result .detail{font-size:13px;color:var(--gray);}
+  #result.warn{border-color:var(--bad);} #result.warn .big,#result.warn .pct{color:var(--bad);}
+
+  .qlist{margin-top:6px;}
+  .q{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .q.right{background:var(--okbg);}
+  .q.wrong{background:var(--badbg);}
+  .stem{font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .stem-txt{flex:1;}
+  .copy-btn{flex-shrink:0;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--gray);
+            font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;font-family:inherit;transition:.12s;}
+  .copy-btn:hover{border-color:var(--primary2);color:var(--primary2);background:#eaf1f8;}
+  .copy-btn.copied{color:var(--ok);border-color:var(--ok);background:var(--okbg);}
+  .stem .tag{display:inline-block;background:#eaf1f8;color:var(--primary2);font-size:11px;font-weight:700;
+             padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle;}
+  .opts{display:flex;flex-direction:column;gap:7px;}
+  .opt{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border:1.5px solid var(--line);
+       border-radius:8px;cursor:pointer;transition:.12s;background:#fff;}
+  .opt:hover{border-color:var(--primary2);background:#f7fafd;}
+  .opt input{margin:3px 0 0;accent-color:var(--primary);transform:scale(1.15);cursor:pointer;}
+  .opt.sel{border-color:var(--primary2);background:#eaf1f8;}
+  .opt.ok{border-color:var(--ok);background:var(--okbg);}
+  .opt.ok::after{content:"✓ Correct";margin-left:auto;color:var(--ok);font-size:12px;font-weight:700;}
+  .opt.bad{border-color:var(--bad);background:var(--badbg);}
+  .opt.bad::after{content:"✗ Your choice";margin-left:auto;color:var(--bad);font-size:12px;font-weight:700;}
+  .exp{margin-top:10px;padding:9px 12px;background:#f7f9fc;border-left:3px solid var(--primary2);border-radius:4px;font-size:13.5px;}
+  .exp b{color:var(--primary);}
+  .mark{font-weight:700;margin-left:8px;}
+  .mark.ok{color:var(--ok);} .mark.bad{color:var(--bad);}
+
+  footer{color:var(--gray);text-align:center;font-size:12px;margin-top:24px;}
+
+  /* ---------- Mobile ---------- */
+  @media(max-width:640px){
+    .wrap{padding:12px 10px 60px;}
+    header.top h1{font-size:19px;}
+    .mode-grid,.chap-grid{grid-template-columns:1fr;}
+    .quizbar{position:static;flex-direction:column;align-items:stretch;}
+    .quizbar .info{text-align:center;}
+    .timer{text-align:center;}
+    .stem{font-size:15px;}
+    .opt{font-size:14px;padding:11px 12px;}
+    #result .big{font-size:28px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Energy Storage System Testing · Self-Assessment</h1>
+    <div class="sub">BESS L1 Certification Course · Question bank loaded from quiz-en.js</div>
+  </header>
+
+  <!-- ============ HOME VIEW ============ -->
+  <div id="home" class="view">
+    <div class="hero">
+      <h2>Choose a Mode</h2>
+      <p><b id="totalCount">0</b> questions in bank · Single Choice + True/False + Multiple Choice · 2 pts each · 80 pass / 90 excellent</p>
+    </div>
+
+    <div class="mode-grid">
+      <button class="mode-card" onclick="startFull()">
+        <div class="mt">📄 Full Exam</div>
+        <div class="ms">All <span id="fullCount">0</span> questions, shuffled · scored to 100</div>
+      </button>
+      <button class="mode-card" onclick="startRandom(10)">
+        <div class="mt">🎲 Random 10</div>
+        <div class="ms">10 random questions across all chapters</div>
+      </button>
+    </div>
+
+    <div class="sec-title">Practice by Chapter</div>
+    <div id="chapter-list" class="chap-grid"></div>
+  </div>
+
+  <!-- ============ QUIZ VIEW ============ -->
+  <div id="quiz" class="view hidden">
+    <div class="quizbar">
+      <button class="btn btn-back" onclick="goHome()">← Home</button>
+      <div class="info"><b id="modeLabel">—</b> · <span id="qCount">0</span> questions · answered <span id="answered">0</span></div>
+      <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="submitBtn" onclick="submit()">Submit</button>
+      <button class="btn btn-ghost" onclick="retry()">Retry</button>
+    </div>
+
+    <div id="box" class="qlist"></div>
+  </div>
+
+  <footer>Update the question bank by editing <b>quiz-en.js</b> — no need to edit this file. · Export wrong-answer notes with timestamp after submit.</footer>
+</div>
+
+<!-- Question bank (edit this file to update questions) -->
+<script src="quiz-en.js"></script>
+<script>
+// ============ State ============
+let currentQuiz = [];
+let modeLabel = '';
+let wrongList = [];
+let t0 = Date.now(), timerInt = null;
+
+function letter(i){ return String.fromCharCode(65+i); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function $(id){ return document.getElementById(id); }
+
+// ============ Home ============
+function buildHome(){
+  $('totalCount').textContent = QUESTIONS.length;
+  $('fullCount').textContent = QUESTIONS.length;
+  $('chapter-list').innerHTML = CHAPTERS.map(ch=>{
+    const n = QUESTIONS.filter(q=>q.chapter===ch.id).length;
+    return `<button class="chap-card" onclick="startChapter(${ch.id})">
+      <div class="cn">CHAPTER ${ch.id}</div>
+      <div class="ct">${ch.title}</div>
+      <div class="cc">${n} questions</div>
+    </button>`;
+  }).join('');
+}
+
+// ============ Start modes ============
+function startFull(){
+  currentQuiz = shuffle(QUESTIONS);
+  modeLabel = 'Full Exam';
+  enterQuiz();
+}
+function startChapter(chId){
+  currentQuiz = shuffle(QUESTIONS.filter(q=>q.chapter===chId));
+  const ch = CHAPTERS.find(c=>c.id===chId);
+  modeLabel = 'Chapter ' + chId + ': ' + ch.title;
+  enterQuiz();
+}
+function startRandom(n){
+  currentQuiz = shuffle(QUESTIONS).slice(0, n);
+  modeLabel = 'Random ' + n;
+  enterQuiz();
+}
+function enterQuiz(){
+  $('home').classList.add('hidden');
+  $('quiz').classList.remove('hidden');
+  $('modeLabel').textContent = modeLabel;
+  $('qCount').textContent = currentQuiz.length;
+  $('result').style.display = 'none';
+  let sb=$('submitBtn'); sb.disabled=false; sb.textContent='Submit';
+  render();
+  startTimer();
+  window.scrollTo(0,0);
+}
+function goHome(){
+  $('quiz').classList.add('hidden');
+  $('home').classList.remove('hidden');
+  stopTimer();
+  window.scrollTo(0,0);
+}
+function retry(){
+  render();
+  $('result').style.display='none';
+  let sb=$('submitBtn'); sb.disabled=false; sb.textContent='Submit';
+  startTimer();
+  window.scrollTo(0,0);
+}
+
+// ============ Render ============
+function tagName(t){ return t==='single'?'Single Choice':t==='truefalse'?'True / False':'Multiple Choice'; }
+function buildQuestion(q,i){
+  let optsHtml;
+  if(q.type==='truefalse'){
+    optsHtml = ['True','False'].map(v=>`<label class="opt"><input type="radio" name="q${i}" value="${v}" onchange="syncSel(this)"><span>${v}</span></label>`).join('');
+  } else {
+    const t = q.type==='multi'?'checkbox':'radio';
+    optsHtml = q.opts.map((o,j)=>`<label class="opt"><input type="${t}" name="q${i}" value="${letter(j)}" onchange="syncSel(this)"><span>${letter(j)}. ${o}</span></label>`).join('');
+  }
+  return `<div class="q" id="q-${i}">
+    <div class="stem"><span class="stem-txt">${i+1}. ${q.q}<span class="tag">${tagName(q.type)}</span></span><button class="copy-btn" onclick="copyQuestion(${i},this)" title="Copy question and options">Copy</button></div>
+    <div class="opts">${optsHtml}</div>
+    <div class="exp hidden"></div>
+  </div>`;
+}
+function render(){
+  $('box').innerHTML = currentQuiz.map((q,i)=>buildQuestion(q,i)).join('');
+  updateAnswered();
+}
+function syncSel(input){
+  let label = input.closest('.opt');
+  if(input.type==='radio'){
+    document.querySelectorAll(`input[name="${input.name}"]`).forEach(r=>r.closest('.opt').classList.remove('sel'));
+  }
+  label.classList.toggle('sel', input.checked);
+  updateAnswered();
+}
+function updateAnswered(){
+  let a=0;
+  currentQuiz.forEach((q,i)=>{
+    const s = document.querySelector(`input[name="q${i}"]:checked`);
+    if(s) a++;
+  });
+  $('answered').textContent = a;
+}
+
+// Copy question stem + options (without the answer) as plain text
+function copyQuestion(i, btn){
+  const q = currentQuiz[i];
+  let text = (i+1) + '. ' + q.q + '\n';
+  if(q.type==='truefalse'){
+    text += 'A. True\nB. False';
+  } else {
+    text += q.opts.map((o,j)=>letter(j)+'. '+o).join('\n');
+  }
+  const done=()=>{ btn.classList.add('copied'); btn.textContent='Copied ✓'; setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); },1500); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,btn,done));
+  } else {
+    fallbackCopy(text,btn,done);
+  }
+}
+function fallbackCopy(text,btn,done){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ alert('Copy failed — please copy manually.'); }
+  document.body.removeChild(ta);
+}
+
+// ============ Reveal (single & truefalse share radio logic) ============
+function revealRadio(i, correctVal, userVal, ok, expHtml){
+  let qel = $('q-'+i);
+  qel.classList.add(ok?'right':'wrong');
+  let cor = qel.querySelector(`input[value="${correctVal}"]`);
+  if(cor) cor.closest('.opt').classList.add('ok');
+  if(userVal && userVal!==correctVal){ let bad=qel.querySelector(`input[value="${userVal}"]`); if(bad) bad.closest('.opt').classList.add('bad'); }
+  let exp = qel.querySelector('.exp');
+  exp.innerHTML = expHtml + ` <span class="mark ${ok?'ok':'bad'}">${ok?'✔ Correct':'✘ Wrong'}</span>`;
+  exp.classList.remove('hidden');
+}
+function revealMulti(i, ans, chks, ok, expHtml){
+  let qel = $('q-'+i);
+  qel.classList.add(ok?'right':'wrong');
+  let ansSet = new Set(ans);
+  ans.forEach(a=>{ let ip=qel.querySelector(`input[value="${a}"]`); if(ip) ip.closest('.opt').classList.add('ok'); });
+  chks.forEach(c=>{ if(!ansSet.has(c)){ let ip=qel.querySelector(`input[value="${c}"]`); if(ip) ip.closest('.opt').classList.add('bad'); } });
+  let exp = qel.querySelector('.exp');
+  exp.innerHTML = expHtml + ` <span class="mark ${ok?'ok':'bad'}">${ok?'✔ Correct':'✘ Wrong'}</span>`;
+  exp.classList.remove('hidden');
+}
+
+// ============ Submit ============
+function submit(){
+  let correct=0, score=0, max=currentQuiz.length*2, unanswered=0;
+  wrongList = [];
+
+  currentQuiz.forEach((q,i)=>{
+    let ok=false, userAns;
+    if(q.type==='truefalse'){
+      let chk = document.querySelector(`input[name="q${i}"]:checked`);
+      let val = chk?chk.value:null;
+      if(!val) unanswered++;
+      const correctVal = q.ans?'True':'False';
+      ok = val===correctVal;
+      userAns = val||'(no answer)';
+      revealRadio(i, correctVal, val, ok, `<b>Explanation:</b> ${q.exp}`);
+      if(!ok){
+        wrongList.push({
+          type:'True / False', q:q.q,
+          opts:[{text:'True',correct:q.ans===true,bad:val==='True'&&q.ans!==true},
+                {text:'False',correct:q.ans===false,bad:val==='False'&&q.ans!==false}],
+          userAns, correctAns:correctVal, exp:q.exp
+        });
+      }
+    } else if(q.type==='single'){
+      let chk = document.querySelector(`input[name="q${i}"]:checked`);
+      let val = chk?chk.value:null;
+      if(!val) unanswered++;
+      ok = val===q.ans;
+      userAns = val||'(no answer)';
+      revealRadio(i, q.ans, val, ok, `<b>Explanation:</b> ${q.exp}`);
+      if(!ok){
+        wrongList.push({
+          type:'Single Choice', q:q.q,
+          opts:q.opts.map((o,j)=>{const L=letter(j);return {text:L+'. '+o,correct:L===q.ans,bad:L===val};}),
+          userAns, correctAns:q.ans, exp:q.exp
+        });
+      }
+    } else { // multi
+      let chks = [...document.querySelectorAll(`input[name="q${i}"]:checked`)].map(c=>c.value).sort();
+      if(!chks.length) unanswered++;
+      let ans = [...q.ans].sort();
+      let ansSet = new Set(ans);
+      ok = chks.length===ans.length && chks.every((v,k)=>v===ans[k]);
+      userAns = chks.join('')||'(no answer)';
+      revealMulti(i, ans, chks, ok, `<b>Explanation:</b> ${q.exp} <b>Answer: ${ans.join('')}</b>`);
+      if(!ok){
+        wrongList.push({
+          type:'Multiple Choice', q:q.q,
+          opts:q.opts.map((o,j)=>{const L=letter(j);return {text:L+'. '+o,correct:ansSet.has(L),bad:chks.includes(L)&&!ansSet.has(L)};}),
+          userAns, correctAns:ans.join(''), exp:q.exp
+        });
+      }
+    }
+    if(ok){ correct++; score+=2; }
+  });
+
+  // Lock
+  document.querySelectorAll('input').forEach(ip=>ip.disabled=true);
+  document.querySelectorAll('.opt').forEach(l=>l.classList.remove('sel'));
+  stopTimer();
+
+  // Score (percent, 80 pass / 90 excellent)
+  let pct = Math.round(score/max*100);
+  let grade = pct>=90?'Excellent':pct>=80?'Pass':'Fail';
+  let R = $('result');
+  R.className = 'warn';
+  if(pct>=80) R.classList.remove('warn');
+  R.style.display = 'block';
+  let exportBtn = wrongList.length
+    ? `<button class="btn btn-primary" onclick="exportWrong()" style="margin-top:12px;">📥 Export Wrong-Answer Notes (${wrongList.length})</button>`
+    : `<div style="margin-top:12px;color:var(--ok);font-weight:700;">All correct — no wrong answers.</div>`;
+  R.innerHTML = `<div class="big">${pct} / 100</div>
+    <div class="pct">Scored to 100 · ${correct}/${currentQuiz.length} correct · Raw ${score}/${max} · <b>${grade}</b></div>
+    <div class="detail">Time ${$('timer').textContent} · ${unanswered} unanswered · Pass 80 · Excellent 90</div>
+    ${exportBtn}`;
+  R.scrollIntoView({behavior:'smooth',block:'center'});
+  let sb=$('submitBtn'); sb.disabled=true; sb.textContent='Submitted';
+}
+
+// ============ Export wrong notes ============
+function ts(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+}
+function buildWrongHtml(list, stamp, summary){
+  const items = list.map((q,i)=>`
+    <div class="q">
+      <div class="stem">${i+1}. <span class="tag">${q.type}</span> ${q.q}</div>
+      <div class="opts">${q.opts.map(o=>`<div class="opt ${o.correct?'ok':''} ${o.bad?'bad':''}">${o.text}</div>`).join('')}</div>
+      <div class="exp"><b>Your answer:</b> ${q.userAns} &nbsp;&nbsp; <b>Correct answer:</b> ${q.correctAns}<br><b>Explanation:</b> ${q.exp}</div>
+    </div>`).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wrong-Answer Notes · ${stamp}</title>
+<style>
+  :root{--primary:#1F4E79;--primary2:#2E74B5;--ok:#1e8449;--okbg:#e8f6ef;--bad:#c0392b;--badbg:#fdecea;--line:#dbe3ec;}
+  *{box-sizing:border-box;}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#262626;line-height:1.6;font-size:15px;}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 14px 60px;}
+  header{background:linear-gradient(135deg,var(--bad),#e67e22);color:#fff;padding:18px 22px;border-radius:12px;}
+  header h1{margin:0 0 4px;font-size:20px;}header .sub{opacity:.95;font-size:13px;}
+  section{background:#fff;border-radius:12px;padding:8px 20px 16px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  h2{color:var(--primary);border-bottom:2px solid var(--line);padding-bottom:8px;font-size:17px;}
+  .q{padding:14px 0;border-bottom:1px dashed var(--line);}.q:last-child{border:none;}
+  .stem{font-weight:600;margin-bottom:10px;}.stem .tag{display:inline-block;background:var(--badbg);color:var(--bad);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .opts{display:flex;flex-direction:column;gap:7px;}.opt{padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;}
+  .opt.ok{border-color:var(--ok);background:var(--okbg);font-weight:600;}
+  .opt.ok::after{content:"  ✓ Correct";color:var(--ok);font-size:12px;}
+  .opt.bad{border-color:var(--bad);background:var(--badbg);text-decoration:line-through;}
+  .opt.bad::after{content:"  ✗ Yours";color:var(--bad);font-size:12px;}
+  .exp{margin-top:10px;padding:10px 12px;background:#f7f9fc;border-left:3px solid var(--primary2);border-radius:4px;font-size:13.5px;}
+  .exp b{color:var(--primary);}footer{color:#888;text-align:center;font-size:12px;margin-top:18px;}
+</style></head><body><div class="wrap">
+<header><h1>Wrong-Answer Notes</h1><div class="sub">Generated ${stamp} · ${summary}</div></header>
+<section><h2>My Wrong Answers (${list.length})</h2>${items}</section>
+<footer>Tip: redo these questions first without reading the explanation, then verify against the correct answers.</footer>
+</div></body></html>`;
+}
+function exportWrong(){
+  if(!wrongList.length){ alert('No wrong answers to export.'); return; }
+  const stamp = ts();
+  const big = document.querySelector('#result .big')?.textContent || '';
+  const summary = `Score ${big} · ${currentQuiz.length} questions · Pass 80 / Excellent 90`;
+  const blob = new Blob([buildWrongHtml(wrongList, stamp, summary)], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'wrong-answers_' + stamp + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
+// ============ Timer ============
+function fmt(s){ const m=Math.floor(s/60), x=s%60; return (m<10?'0':'')+m+':'+(x<10?'0':'')+x; }
+function startTimer(){
+  t0 = Date.now();
+  if(timerInt) clearInterval(timerInt);
+  timerInt = setInterval(()=>{ $('timer').textContent = fmt(Math.floor((Date.now()-t0)/1000)); }, 1000);
+}
+function stopTimer(){ if(timerInt){ clearInterval(timerInt); timerInt=null; } }
+
+// ============ Init ============
+buildHome();
+</script>
+</body>
+</html>
