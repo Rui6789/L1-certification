@@ -41,6 +41,20 @@
   .mode-card .mt{font-weight:700;color:var(--primary);font-size:17px;}
   .mode-card .ms{color:var(--gray);font-size:13px;margin-top:4px;}
 
+  /* ---------- Random chapter picker ---------- */
+  .random-panel{background:#fff;border:2px solid var(--primary2);border-radius:12px;padding:14px 16px;margin:0 0 18px;
+                box-shadow:0 4px 12px rgba(46,116,181,.15);}
+  .random-panel .pt{font-weight:700;color:var(--primary);font-size:14px;margin-bottom:10px;}
+  .chap-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  .chap-chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);border-radius:8px;
+             padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;background:#fff;transition:.12s;}
+  .chap-chip:hover{border-color:var(--primary2);background:#f7fafd;}
+  .chap-chip.on{border-color:var(--primary2);background:#eaf1f8;color:var(--primary);}
+  .chap-chip input{margin:0;accent-color:var(--primary);cursor:pointer;}
+  .panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .panel-actions .pool{font-size:13px;color:var(--gray);margin-left:auto;}
+  .panel-actions .btn{padding:8px 14px;font-size:13px;}
+
   .sec-title{color:var(--primary);font-size:16px;margin:22px 0 10px;border-bottom:2px solid var(--line);padding-bottom:8px;}
 
   .chap-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -141,10 +155,21 @@
         <div class="mt">📄 Full Exam</div>
         <div class="ms">All <span id="fullCount">0</span> questions, shuffled · scored to 100</div>
       </button>
-      <button class="mode-card" onclick="startRandom(10)">
+      <button class="mode-card" onclick="toggleRandomPanel()">
         <div class="mt">🎲 Random 10</div>
-        <div class="ms">10 random questions across all chapters</div>
+        <div class="ms">10 random questions · pick chapter range</div>
       </button>
+    </div>
+
+    <div id="randomPanel" class="random-panel hidden">
+      <div class="pt">Choose chapters for Random 10</div>
+      <div id="randomChaps" class="chap-chips"></div>
+      <div class="panel-actions">
+        <button class="btn btn-ghost" onclick="setAllChaps(true)">All</button>
+        <button class="btn btn-ghost" onclick="setAllChaps(false)">None</button>
+        <span class="pool" id="randPoolInfo"></span>
+        <button class="btn btn-primary" id="randStartBtn" onclick="startRandom(10)">Start →</button>
+      </div>
     </div>
 
     <div class="sec-title">Practice by Chapter</div>
@@ -199,6 +224,51 @@ function buildHome(){
   }).join('');
 }
 
+// ============ Random chapter picker ============
+let randomChapSel = new Set();
+
+function toggleRandomPanel(force){
+  const p = $('randomPanel');
+  const show = force!==undefined ? force : p.classList.contains('hidden');
+  p.classList.toggle('hidden', !show);
+  if(show) buildRandomPanel();
+}
+function buildRandomPanel(){
+  if(!randomChapSel.size) CHAPTERS.forEach(c=>randomChapSel.add(c.id));   // default: all
+  $('randomChaps').innerHTML = CHAPTERS.map(ch=>{
+    const n = QUESTIONS.filter(q=>q.chapter===ch.id).length;
+    const on = randomChapSel.has(ch.id);
+    return `<label class="chap-chip ${on?'on':''}">
+      <input type="checkbox" value="${ch.id}" ${on?'checked':''} onchange="toggleChap(this)">
+      Ch ${ch.id} · ${ch.title} (${n})</label>`;
+  }).join('');
+  updateRandInfo();
+}
+function toggleChap(input){
+  const id = +input.value;
+  input.checked ? randomChapSel.add(id) : randomChapSel.delete(id);
+  input.closest('.chap-chip').classList.toggle('on', input.checked);
+  updateRandInfo();
+}
+function setAllChaps(on){
+  randomChapSel = new Set(on ? CHAPTERS.map(c=>c.id) : []);
+  buildRandomPanel();
+}
+function updateRandInfo(){
+  const pool = QUESTIONS.filter(q=>randomChapSel.has(q.chapter)).length;
+  $('randStartBtn').disabled = pool===0;
+  $('randPoolInfo').textContent = pool ? pool + ' questions in range' : 'Select at least one chapter';
+}
+function startRandom(n){
+  const pool = QUESTIONS.filter(q=>randomChapSel.has(q.chapter));
+  if(!pool.length) return;
+  const take = Math.min(n, pool.length);
+  currentQuiz = shuffle(pool).slice(0, take);
+  const chs = [...randomChapSel].sort((a,b)=>a-b).join(', ');
+  modeLabel = `Random ${take} · Ch ${chs}` + (take<n ? ` (only ${take} available)` : '');
+  enterQuiz();
+}
+
 // ============ Start modes ============
 function startFull(){
   currentQuiz = shuffle(QUESTIONS);
@@ -209,11 +279,6 @@ function startChapter(chId){
   currentQuiz = shuffle(QUESTIONS.filter(q=>q.chapter===chId));
   const ch = CHAPTERS.find(c=>c.id===chId);
   modeLabel = 'Chapter ' + chId + ': ' + ch.title;
-  enterQuiz();
-}
-function startRandom(n){
-  currentQuiz = shuffle(QUESTIONS).slice(0, n);
-  modeLabel = 'Random ' + n;
   enterQuiz();
 }
 function enterQuiz(){
