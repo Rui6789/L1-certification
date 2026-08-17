@@ -153,7 +153,7 @@
     <div class="mode-grid">
       <button class="mode-card" onclick="startFull()">
         <div class="mt">📄 Full Exam</div>
-        <div class="ms">All <span id="fullCount">0</span> questions, shuffled · scored to 100</div>
+        <div class="ms">Random 50 of <span id="fullCount">0</span> questions · scored to 100</div>
       </button>
       <button class="mode-card" onclick="toggleRandomPanel()">
         <div class="mt">🎲 Random 10</div>
@@ -198,7 +198,7 @@
 </div>
 
 <!-- Question bank (edit quiz-en.js to update questions). Bump ?v=N below when the bank changes to bust cache. -->
-<script src="quiz-en.js?v=2"></script>
+<script src="quiz-en.js?v=3"></script>
 <script>
 // ============ State ============
 let currentQuiz = [];
@@ -225,7 +225,7 @@ function buildHome(){
 }
 
 // ============ Random chapter picker ============
-let randomChapSel = new Set();
+let randomChapSel = new Set(CHAPTERS.map(c=>c.id));   // default: all selected
 
 function toggleRandomPanel(force){
   const p = $('randomPanel');
@@ -234,7 +234,6 @@ function toggleRandomPanel(force){
   if(show) buildRandomPanel();
 }
 function buildRandomPanel(){
-  if(!randomChapSel.size) CHAPTERS.forEach(c=>randomChapSel.add(c.id));   // default: all
   $('randomChaps').innerHTML = CHAPTERS.map(ch=>{
     const n = QUESTIONS.filter(q=>q.chapter===ch.id).length;
     const on = randomChapSel.has(ch.id);
@@ -271,8 +270,9 @@ function startRandom(n){
 
 // ============ Start modes ============
 function startFull(){
-  currentQuiz = shuffle(QUESTIONS);
-  modeLabel = 'Full Exam';
+  const take = Math.min(50, QUESTIONS.length);
+  currentQuiz = shuffle(QUESTIONS).slice(0, take);
+  modeLabel = take < QUESTIONS.length ? 'Full Exam · Random 50 of ' + QUESTIONS.length : 'Full Exam';
   enterQuiz();
 }
 function startChapter(chId){

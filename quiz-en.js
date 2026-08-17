@@ -18,7 +18,8 @@
 
 const CHAPTERS = [
   { id: 1, title: "Energy Storage System Testing" },
-  { id: 2, title: "RTE Data Analysis" }
+  { id: 2, title: "RTE Data Analysis" },
+  { id: 3, title: "F-STOP Function" }
 ];
 
 const QUESTIONS = [
@@ -538,6 +539,294 @@ const QUESTIONS = [
     q:"Which statements about RTE and capacity are correct?",
     opts:["RTE depends on the charge/discharge ratio, not the absolute capacity", "A system can pass RTE but still fail capacity", "Capacity must be checked separately", "Passing RTE automatically means the capacity is fine"],
     ans:["A", "B", "C"],
-    exp:"RTE and capacity are independent; both must be verified." }
+    exp:"RTE and capacity are independent; both must be verified." },
+
+  /* ---------- Chapter 3: F-STOP Function (Q101-Q150) ---------- */
+
+  { id:"Q101", chapter:3, type:"single",
+    q:"In a BESS, F-STOP is best described as:",
+    opts:["a SOC calibration function of the BMS", "an emergency-stop interface linking the battery system with external fire-protection / E-stop circuits", "a PCS-level grid-synchronization feature", "a data-logging function for cell voltages"],
+    ans:"B",
+    exp:"F-STOP is the emergency-stop interface between the BESS and the external fire / E-stop systems. When an emergency occurs outside the battery system, the high-voltage circuit must open immediately and reliably." },
+
+  { id:"Q102", chapter:3, type:"multi",
+    q:"Which of the following can trigger an F-STOP (emergency stop)?",
+    opts:["Local E-stop button pressed", "Fire-protection system action", "Bank-level F-STOP signal", "Routine SOC calibration"],
+    ans:["A", "B", "C"],
+    exp:"The three E-stop sources — bank F-STOP, fire protection and the local E-stop button — are wired in series in one loop; any one of them tripping triggers the emergency stop." },
+
+  { id:"Q103", chapter:3, type:"truefalse",
+    q:"The fire system, local E-stop button and bank F-STOP are wired in parallel, so at least two of them must trip before an emergency stop occurs.",
+    ans:false,
+    exp:"They are wired in SERIES: any single one tripping opens the loop and triggers the emergency stop." },
+
+  { id:"Q104", chapter:3, type:"single",
+    q:"In normal operation, the F-STOP input dry contact is:",
+    opts:["open, and closes on emergency", "pulsing continuously", "closed, and opens on emergency", "in a state that depends on SOC"],
+    ans:"C",
+    exp:"F-STOP uses normally-closed (NC) design: the loop is closed in normal operation, and OPENING it is the trigger." },
+
+  { id:"Q105", chapter:3, type:"single",
+    q:"Why is the F-STOP loop designed so that its contacts are closed during normal operation?",
+    opts:["To reduce standby power consumption", "To speed up Modbus communication", "Fail-safe: if a cable breaks or a terminal loosens, the loop opens and the system enters protection instead of silently losing protection", "Because NC contacts are cheaper"],
+    ans:"C",
+    exp:"Fail-safe (de-energize-to-trip) principle: a broken wire or loose terminal itself opens the loop, so the system goes to the safe state rather than losing its protection capability." },
+
+  { id:"Q106", chapter:3, type:"truefalse",
+    q:"If the 24 V control supply is completely lost, the main-circuit contactors remain closed so that the system keeps operating.",
+    ans:false,
+    exp:"De-energize-to-trip design: losing the 24 V control power de-energizes the relay coils, so the high-voltage contacts necessarily open. This is what makes E-stop the most reliable way to drop the HV circuit." },
+
+  { id:"Q107", chapter:3, type:"single",
+    q:"The essence of an E-stop action is:",
+    opts:["low-voltage control opens the high-voltage circuit: the control loop de-energizes a relay/contactor coil, whose contacts open the HV path", "the BMS raises an alarm and waits for manual disconnection", "the fuses blow on overcurrent", "the PCS cuts only the AC side"],
+    ans:"A",
+    exp:"E-stop works by 'low voltage controls high voltage' — cutting the 24 V control loop de-energizes relays whose contacts carry the HV circuit." },
+
+  { id:"Q108", chapter:3, type:"single",
+    q:"A 'dry contact' is:",
+    opts:["a contact pair that carries no voltage or source of its own — just a switch that opens/closes an external loop", "a contact suitable only for dry environments", "a contact that requires 230 V AC to operate", "a wireless virtual switch"],
+    ans:"A",
+    exp:"A dry contact is a passive contact pair — the external circuit supplies whatever signal/power flows through it." },
+
+  { id:"Q109", chapter:3, type:"single",
+    q:"The F-STOP output dry contact of the BAU is physically implemented as:",
+    opts:["the contact of an internal relay that is energized (closed) in normal operation and releases on the highest-level fault", "a 24 V transistor output", "a software flag without any physical contact", "an optocoupler input stage"],
+    ans:"A",
+    exp:"In normal operation the BMS keeps the internal relay energized (contact closed); on the highest-level (level-3) fault the drive signal is removed and the contact opens. The customer-side F-STOP circuit contains a similar relay." },
+
+  { id:"Q110", chapter:3, type:"single",
+    q:"Which contact type of the E-stop button is used in the F-STOP loop?",
+    opts:["Normally-open (NO)", "Either one — selectable in software", "Neither — E-stop buttons are wireless", "Normally-closed (NC)"],
+    ans:"D",
+    exp:"E-stop button backs carry both NO and NC contact blocks; the F-STOP circuit uses the NC pair so that pressing the button (or a broken wire) opens the loop." },
+
+  { id:"Q111", chapter:3, type:"truefalse",
+    q:"A fire-protection event can trigger F-STOP automatically, without any person pressing an E-stop button.",
+    ans:true,
+    exp:"In the fire interlock chain, a fire alarm opens the fire-alarm relay contact, which de-energizes the loop relay and opens the F-STOP input — a fully automatic trigger." },
+
+  { id:"Q112", chapter:3, type:"single",
+    q:"When the F-STOP input dry contact opens, the BMS:",
+    opts:["opens only the main contactor of the rack that caused the fault", "only raises an alarm and keeps all contactors closed until the EMS confirms", "forces ALL rack main contactors to open, reports the E-stop fault (0x1008 Bit6 = 1), and opens the output dry contact (0x102B Bit0 = 1)", "shuts itself down completely"],
+    ans:"C",
+    exp:"The safety sequence is: open all rack main contactors → report the E-stop fault and set the status bit → open the output dry contact for external feedback." },
+
+  { id:"Q113", chapter:3, type:"truefalse",
+    q:"On F-STOP, only the rack where the fault originated opens its main contactor; the other racks stay closed.",
+    ans:false,
+    exp:"The command opens the main contactors of ALL racks simultaneously — not only the faulty one." },
+
+  { id:"Q114", chapter:3, type:"single",
+    q:"Which Modbus register bit marks the emergency-stop state?",
+    opts:["0x1008 Bit6", "0x102B Bit0", "0x1008 Bit0", "0x102B Bit6"],
+    ans:"A",
+    exp:"0x1008 Bit6 is the emergency-stop status bit, set to 1 (active) when the system has entered E-stop. It can be checked in the Modbus fault table." },
+
+  { id:"Q115", chapter:3, type:"single",
+    q:"Which Modbus register bit indicates that the F-STOP output dry contact has opened?",
+    opts:["0x1008 Bit0", "0x102B Bit0", "0x1008 Bit6", "0x102B Bit6"],
+    ans:"B",
+    exp:"0x102B Bit0 = 1 indicates the output dry contact has opened." },
+
+  { id:"Q116", chapter:3, type:"single",
+    q:"What is the difference between 0x1008 Bit6 and 0x102B Bit0?",
+    opts:["They are two names of the same bit", "0x1008 Bit6 marks that the system has entered E-stop (event/state); 0x102B Bit0 marks that the output dry contact has opened (feedback)", "0x102B Bit0 is only used during charging", "0x1008 Bit6 is written by the EMS and 0x102B Bit0 by the PCS"],
+    ans:"B",
+    exp:"One is the event state ('system has entered E-stop'), the other is the feedback state ('output contact has opened')." },
+
+  { id:"Q117", chapter:3, type:"single",
+    q:"What is the purpose of the F-STOP output dry contact?",
+    opts:["to provide a hardwired interlock confirmation to external systems (EMS / fire system / PCS) that the BMS has executed the E-stop — closing the safety loop", "to power the fire-suppression system", "to carry CAN communication", "to measure insulation resistance"],
+    ans:"A",
+    exp:"The output contact gives external systems a hardwired-level confirmation that the BMS has executed the E-stop, forming a closed safety loop." },
+
+  { id:"Q118", chapter:3, type:"truefalse",
+    q:"A 'contactor fail-to-open' fault (the BMS commanded opening but the contactor did not open) also causes the BMS to open the F-STOP output dry contact.",
+    ans:true,
+    exp:"Besides the input loop opening, a contactor fail-to-open (or other highest-level) fault also opens the output dry contact and sets 0x102B Bit0." },
+
+  { id:"Q119", chapter:3, type:"single",
+    q:"On the BAU connector, the F-STOP INPUT dry contact is:",
+    opts:["Pin29 / Pin30", "CAN-H / CAN-L", "Pin19 / Pin20", "Pin1 / Pin2"],
+    ans:"C",
+    exp:"Pin19/Pin20 are the F-STOP input dry contact (sampled by the BAU); Pin29/Pin30 are the output dry contact." },
+
+  { id:"Q120", chapter:3, type:"single",
+    q:"On the BAU connector, the F-STOP OUTPUT dry contact is:",
+    opts:["Pin19 / Pin20", "Pin1 / Pin2", "CAN-H / CAN-L", "Pin29 / Pin30"],
+    ans:"D",
+    exp:"Pin29/Pin30 form the output dry contact used to feed the E-stop confirmation back to external systems." },
+
+  { id:"Q121", chapter:3, type:"single",
+    q:"Simplified F-STOP control loop: 24 V+ → E-stop button (NC) → interlock nodes in series → BAU output dry contact → loop-relay coil → GND. When the loop-relay coil is energized:",
+    opts:["its normally-closed contact opens and a fault is reported", "its normally-open contact closes, Pin19/20 conduct, and no E-stop fault is reported", "the HV main contactor opens", "the system enters sleep mode"],
+    ans:"B",
+    exp:"Any point in this series chain opening de-energizes the coil → its contact opens → the Pin19/20 loop opens → E-stop. Field troubleshooting means walking this one chain." },
+
+  { id:"Q122", chapter:3, type:"single",
+    q:"A relay basically consists of:",
+    opts:["a fuse and a varistor", "a coil and contacts: energizing the coil (e.g., 24 V on A1/A2) magnetically closes the contacts", "a battery and an inverter", "a software task and a watchdog timer"],
+    ans:"B",
+    exp:"Relay = coil + contacts. Apply 24 V to the coil (A1/A2), the coil magnetizes and pulls the contacts closed. Large contactors work the same way." },
+
+  { id:"Q123", chapter:3, type:"truefalse",
+    q:"In a BDU, the large screw terminals carry the high-voltage path while the small wires beside them are the 24 V control circuit — the control wires are electrically separate from the HV path.",
+    ans:true,
+    exp:"'Low voltage controls high voltage': the 24 V control wires drive the contactor coil; the HV current flows through the large terminals. They are independent circuits." },
+
+  { id:"Q124", chapter:3, type:"single",
+    q:"The bidirectional interlock between BMS and EMS means:",
+    opts:["the BMS controls the EMS unconditionally", "the interlock only works while charging", "if either side triggers F-STOP, both sides open their loops at the same time", "the EMS can monitor but never act"],
+    ans:"C",
+    exp:"When the BAU detects the input loop open, it sets the register and notifies the EMS; the EMS then also opens its side. Either side tripping causes both to disconnect." },
+
+  { id:"Q125", chapter:3, type:"single",
+    q:"Why is a fault-reset button necessary in the F-STOP circuit?",
+    opts:["to discharge the DC bus", "to reboot the BMS", "because the input loop opening → E-stop → output contact opening prevents the input loop from closing again (deadlock interlock); after the fault is cleared, reset re-closes the output contact so the loop can recover", "to recalibrate SOC"],
+    ans:"C",
+    exp:"Without reset, once the output contact opens, the interlock loop can never close again — a dead-loop interlock. After clearing the fault, press reset to restore the output contact and re-close the loop." },
+
+  { id:"Q126", chapter:3, type:"truefalse",
+    q:"Relay designations (such as K3/K4) and wire numbers are standardized across all sites, so drawings from one project can be used directly at another site.",
+    ans:false,
+    exp:"They differ site by site. Always troubleshoot against the as-built drawings of the specific site." },
+
+  { id:"Q127", chapter:3, type:"multi",
+    q:"Which of the following can simulate (trigger) an F-STOP on site?",
+    opts:["Sending a Modbus command to clear faults", "Pressing the E-stop button", "Power-cycling the EMS", "Switching a rack BDU manual disconnect to OFF"],
+    ans:["B", "D"],
+    exp:"The manual disconnect's auxiliary contact is wired in series with the F-STOP input loop, so opening the disconnect opens the loop — the simplest way to simulate F-STOP." },
+
+  { id:"Q128", chapter:3, type:"single",
+    q:"Why can switching the manual DC disconnect to OFF simulate an F-STOP?",
+    opts:["its auxiliary contact is in series with the F-STOP input loop, so opening the switch opens the loop", "it directly cuts the HV bus", "it resets the BAU processor", "it isolates the PCS from the grid"],
+    ans:"A",
+    exp:"The disconnect's auxiliary contact belongs to the F-STOP input series loop, so its state change has exactly the same effect as tripping the E-stop." },
+
+  { id:"Q129", chapter:3, type:"single",
+    q:"The manual DC disconnect may be operated (e.g., for an F-STOP test) only when:",
+    opts:["the system is under full load", "at any time, regardless of load", "the system is in a level-2 alarm", "no current is flowing — e.g., grid-connected but with no charge/discharge command in progress"],
+    ans:"D",
+    exp:"Opening the disconnect while current flows is a load-break operation, which is not allowed. A proper F-STOP test window: after grid connection, before any charge/discharge action." },
+
+  { id:"Q130", chapter:3, type:"truefalse",
+    q:"If the main contactor is closed and current is flowing, you may still open the manual disconnect, because the BMS will open the contactor anyway.",
+    ans:false,
+    exp:"Not allowed — that is load-break switching. The BMS would open the contactor and a level-3 contactor fault could also be triggered." },
+
+  { id:"Q131", chapter:3, type:"single",
+    q:"A site keeps reporting an F-STOP fault and cannot connect to the grid. The FIRST thing to check is:",
+    opts:["whether every rack's manual disconnect is in the ON position", "replace the BAU", "re-flash the BMS firmware", "replace all racks"],
+    ans:"A",
+    exp:"With many racks on site, one or two disconnects left open keep the series F-STOP loop open and block grid connection. Rule them out first — the cheapest check and the most common cause." },
+
+  { id:"Q132", chapter:3, type:"single",
+    q:"The ABA substitution test for the BAU is performed as follows:",
+    opts:["swap in any spare BAU and see whether communication improves", "swap in a known-good, correctly configured BAU: fault persists → the original BAU is fine and the problem is in the external loop; fault disappears → the original BAU is faulty (reinstall it to confirm)", "compare the BAU serial numbers", "measure only the BAU supply voltage"],
+    ans:"B",
+    exp:"ABA testing first draws the boundary: BAU itself vs external loop. If the fault disappears with the substitute, reinstall the original to confirm the fault reappears before concluding." },
+
+  { id:"Q133", chapter:3, type:"single",
+    q:"The F-STOP fault tree first splits into two main branches:",
+    opts:["AC-side and DC-side faults", "hardware and software faults", "BMS and PCS faults", "BAU unit fault and signal-loop (wiring) fault"],
+    ans:"D",
+    exp:"First decide whether the BAU itself is OK (ABA test), then walk the external signal loop segment by segment." },
+
+  { id:"Q134", chapter:3, type:"single",
+    q:"The correct order of the F-STOP signal chain to inspect is:",
+    opts:["BAU connector → terminal block → contactor auxiliary contact", "contactor → PCS → grid", "EMS → cloud → BMS", "terminal block → fire system → BAU"],
+    ans:"A",
+    exp:"Build the full loop from the BAU circuit drawing plus the customer-side installation drawing, then check it segment by segment: BAU side → terminals → contactor auxiliary contacts." },
+
+  { id:"Q135", chapter:3, type:"multi",
+    q:"The two basic checks when troubleshooting the F-STOP signal loop are:",
+    opts:["check that each wire sits in the correct position (against the drawings)", "check loop continuity with a multimeter", "perform a full battery capacity test", "check the PCS firmware version"],
+    ans:["A", "B"],
+    exp:"Check A (correct positions, visual, against drawings) and check B (continuity, multimeter beep mode) — nothing more is needed for a dry-contact loop." },
+
+  { id:"Q136", chapter:3, type:"truefalse",
+    q:"Before measuring continuity with a multimeter, first verify visually that each wire sits in the correct position according to the drawings.",
+    ans:true,
+    exp:"Wrong position is the simplest fault class and must be ruled out first; continuity readings are meaningless if the wire is in the wrong terminal." },
+
+  { id:"Q137", chapter:3, type:"single",
+    q:"The 'short-bypass' method for locating a fault in a dry-contact loop:",
+    opts:["short the two wires of the suspect component: if the fault disappears, the component is healthy", "short the two wires of the suspect component: if the fault disappears, that component is the problem", "always eliminates the fault permanently", "is forbidden in all cases"],
+    ans:"B",
+    exp:"Bypass the suspect device and see whether the fault follows it: if shorting it clears the fault, the device (not the rest of the loop) is faulty." },
+
+  { id:"Q138", chapter:3, type:"single",
+    q:"Shorting the contactor's auxiliary-contact wires clears the F-STOP warning. What does this mean and what is the next step?",
+    opts:["the wiring is faulty — re-crimp all terminals", "the BAU is faulty — replace it", "the contactor (auxiliary contact) is faulty — notify the customer to check/replace it, since the contactor is customer-side equipment", "nothing — it will self-recover"],
+    ans:"C",
+    exp:"The fault follows the bypassed component, so the contactor is faulty. It belongs to the customer side, so the customer is notified to check or replace it." },
+
+  { id:"Q139", chapter:3, type:"single",
+    q:"Which multimeter function is the core tool for F-STOP loop checks?",
+    opts:["capacitance mode", "continuity (beep) mode", "frequency mode", "temperature mode"],
+    ans:"B",
+    exp:"The multimeter is mainly used in continuity (beep) mode to check whether each segment of the dry-contact loop conducts." },
+
+  { id:"Q140", chapter:3, type:"truefalse",
+    q:"Even with every wire intact, a poorly crimped or loose terminal can keep the F-STOP loop open and the warning active.",
+    ans:true,
+    exp:"Terminals are nodes of the series loop: bad crimping or looseness opens the loop just like a broken wire. Measure continuity across each terminal to confirm." },
+
+  { id:"Q141", chapter:3, type:"multi",
+    q:"Useful tools for F-STOP troubleshooting include:",
+    opts:["a laptop with the BMS host-PC software", "a multimeter", "a CAN adapter for BMS-to-PC communication", "a battery capacity tester"],
+    ans:["A", "B", "C"],
+    exp:"The standard kit: laptop with host software (monitor/controls the battery system), multimeter (beep mode), and a CAN adapter plus communication harness between the BMS and the PC." },
+
+  { id:"Q142", chapter:3, type:"single",
+    q:"The field three-step method when the F-STOP loop relay is not picked up:",
+    opts:["1) replace the relay → 2) replace the BAU → 3) replace the racks", "1) check whether the relay is picked up (status LED) → 2) check whether its coil gets 24 V → 3) walk the loop for opens (E-stop pressed? NC contact wired correctly? output contact opened by a BMS fault? broken wire?)", "1) measure cell voltages → 2) restart the EMS → 3) reboot everything", "in random order, whichever is fastest"],
+    ans:"B",
+    exp:"Three steps: relay state (LED) → coil supply (24 V at A1/A2) → walk the series loop for the open point." },
+
+  { id:"Q143", chapter:3, type:"truefalse",
+    q:"The exact conditions under which the customer side (fire / E-stop system) opens its contact are always documented in the battery manufacturer's manual.",
+    ans:false,
+    exp:"Customer-side trigger conditions are outside the battery manufacturer's scope and must be confirmed with the customer on site — part of the checklist when an F-STOP warning will not clear." },
+
+  { id:"Q144", chapter:3, type:"single",
+    q:"A large rack-to-rack voltage difference causes:",
+    opts:["only a slight efficiency drop", "only communication errors", "no consequence at all", "inability to connect to the grid — and even after the voltages are pulled level, the capacity gap of the weaker cells remains, reducing usable capacity"],
+    ans:"D",
+    exp:"Two consequences: the HV connection (grid connection) is blocked, and even if the voltages are later equalized, the capacity deficit of the weak cells remains, so usable capacity is still reduced." },
+
+  { id:"Q145", chapter:3, type:"single",
+    q:"Circulating current between racks connected to the same DC bus:",
+    opts:["flows from the higher-voltage rack into the lower-voltage rack; total capacity is unchanged (the racks average out) and it stops once their states match", "permanently destroys the BMS", "is caused by CAN communication", "only appears during grid faults"],
+    ans:"A",
+    exp:"Rack-to-rack circulation transfers charge between racks without dissipating it — total capacity is preserved; it decays to zero once the two racks' states match." },
+
+  { id:"Q146", chapter:3, type:"truefalse",
+    q:"Passive balancing increases the total capacity of a pack.",
+    ans:false,
+    exp:"In passive balancing, cells other than the lowest discharge through resistors, so the energy is dissipated as heat — total capacity DECREASES. This differs from rack-to-rack circulation, which preserves total capacity." },
+
+  { id:"Q147", chapter:3, type:"truefalse",
+    q:"Passive-balancing trigger conditions are AND-related: balancing starts only when ALL conditions are satisfied simultaneously.",
+    ans:true,
+    exp:"Each method requires every condition to hold at the same time (e.g., voltage above a threshold AND cell delta above a threshold); missing any single one blocks the trigger." },
+
+  { id:"Q148", chapter:3, type:"single",
+    q:"The passive-balancing decision is based on:",
+    opts:["the difference between displayed SOC and inner SOC", "the EMS-reported SOC", "the PCS-reported SOC", "the inter-cell difference of the inner SOC (estimated from the cells' static voltage via the OCV table) — not the displayed SOC"],
+    ans:"D",
+    exp:"Displayed SOC and inner SOC can differ widely without triggering balancing; the criterion is the true (inner, OCV-table-based) SOC difference between cells." },
+
+  { id:"Q149", chapter:3, type:"truefalse",
+    q:"During passive balancing, the lowest cell also discharges through its balancing resistor.",
+    ans:false,
+    exp:"The lowest cell does NOT participate in balancing; the other cells discharge through their resistors to align toward it." },
+
+  { id:"Q150", chapter:3, type:"single",
+    q:"During passive balancing, the lowest cell keeps dropping with a slope clearly steeper than the other (linear, overlapping) cells. This indicates:",
+    opts:["excessive self-discharge or a micro-short in that cell", "normal balancing behaviour", "an open balancing resistor", "a communication error"],
+    ans:"A",
+    exp:"The lowest cell is excluded from balancing, so if it still drops faster than the others it likely has excessive self-discharge or a micro-short. Verify by disabling balancing and watching whether it keeps dropping; if so, schedule replacement." }
 
 ];
