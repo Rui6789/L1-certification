@@ -85,7 +85,9 @@
   .btn-accent:hover{background:#ca6a14;}
 
   /* ---------- Questions ---------- */
-  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;align-items:center;}
+  .actions .marked-info{font-size:13px;color:var(--gray);margin-left:auto;}
+  .actions .marked-info b{color:var(--accent);}
   #result{display:none;background:#fff;border-radius:12px;padding:20px;text-align:center;
           box-shadow:0 2px 10px rgba(0,0,0,.06);border:2px solid var(--primary);margin-top:14px;}
   #result .big{font-size:32px;font-weight:700;color:var(--primary);}
@@ -103,6 +105,11 @@
             font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;font-family:inherit;transition:.12s;}
   .copy-btn:hover{border-color:var(--primary2);color:var(--primary2);background:#eaf1f8;}
   .copy-btn.copied{color:var(--ok);border-color:var(--ok);background:var(--okbg);}
+  .mark-btn{flex-shrink:0;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--gray);
+            font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;font-family:inherit;transition:.12s;margin-left:6px;}
+  .mark-btn:hover{border-color:#f39c12;color:#f39c12;background:#fef9e7;}
+  .mark-btn.on{color:#f39c12;border-color:#f39c12;background:#fef9e7;}
+  .mark-btn.on::after{content:" ★";}
   .stem .tag{display:inline-block;background:#eaf1f8;color:var(--primary2);font-size:11px;font-weight:700;
              padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle;}
   .opts{display:flex;flex-direction:column;gap:7px;}
@@ -189,6 +196,8 @@
     <div class="actions">
       <button class="btn btn-primary" id="submitBtn" onclick="submit()">Submit</button>
       <button class="btn btn-ghost" onclick="retry()">Retry</button>
+      <button class="btn btn-accent" id="exportMarkedBtn" onclick="exportMarked()">📌 Export Marked (<span id="markedCount">0</span>)</button>
+      <span class="marked-info" id="markedInfo"></span>
     </div>
 
     <div id="box" class="qlist"></div>
@@ -198,12 +207,13 @@
 </div>
 
 <!-- Question bank (edit quiz-en.js to update questions). Bump ?v=N below when the bank changes to bust cache. -->
-<script src="quiz-en.js?v=3"></script>
+<script src="quiz-en.js?v=8"></script>
 <script>
 // ============ State ============
 let currentQuiz = [];
 let modeLabel = '';
 let wrongList = [];
+let markedSet = new Set();   // 标记的题目索引集合
 let t0 = Date.now(), timerInt = null;
 
 function letter(i){ return String.fromCharCode(65+i); }
@@ -276,7 +286,7 @@ function startFull(){
   enterQuiz();
 }
 function startChapter(chId){
-  currentQuiz = shuffle(QUESTIONS.filter(q=>q.chapter===chId));
+  currentQuiz = QUESTIONS.filter(q=>q.chapter===chId);   // 保持题库原始顺序
   const ch = CHAPTERS.find(c=>c.id===chId);
   modeLabel = 'Chapter ' + chId + ': ' + ch.title;
   enterQuiz();
@@ -288,7 +298,9 @@ function enterQuiz(){
   $('qCount').textContent = currentQuiz.length;
   $('result').style.display = 'none';
   let sb=$('submitBtn'); sb.disabled=false; sb.textContent='Submit';
+  markedSet = new Set();   // 重置标记
   render();
+  updateMarkedUI();
   startTimer();
   window.scrollTo(0,0);
 }
@@ -299,7 +311,9 @@ function goHome(){
   window.scrollTo(0,0);
 }
 function retry(){
+  markedSet = new Set();   // 重置标记
   render();
+  updateMarkedUI();
   $('result').style.display='none';
   let sb=$('submitBtn'); sb.disabled=false; sb.textContent='Submit';
   startTimer();
@@ -316,8 +330,11 @@ function buildQuestion(q,i){
     const t = q.type==='multi'?'checkbox':'radio';
     optsHtml = q.opts.map((o,j)=>`<label class="opt"><input type="${t}" name="q${i}" value="${letter(j)}" onchange="syncSel(this)"><span>${letter(j)}. ${o}</span></label>`).join('');
   }
+  const marked = markedSet.has(i) ? 'on' : '';
   return `<div class="q" id="q-${i}">
-    <div class="stem"><span class="stem-txt">${i+1}. ${q.q}<span class="tag">${tagName(q.type)}</span></span><button class="copy-btn" onclick="copyQuestion(${i},this)" title="Copy question and options">Copy</button></div>
+    <div class="stem"><span class="stem-txt">${i+1}. ${q.q}<span class="tag">${tagName(q.type)}</span></span>
+      <button class="mark-btn ${marked}" onclick="toggleMark(${i},this)" title="Mark this question">Flag</button>
+      <button class="copy-btn" onclick="copyQuestion(${i},this)" title="Copy question and options">Copy</button></div>
     <div class="opts">${optsHtml}</div>
     <div class="exp hidden"></div>
   </div>`;
@@ -365,6 +382,85 @@ function fallbackCopy(text,btn,done){
   document.body.appendChild(ta); ta.focus(); ta.select();
   try{ document.execCommand('copy'); done(); }catch(e){ alert('Copy failed — please copy manually.'); }
   document.body.removeChild(ta);
+}
+
+// ============ Mark questions ============
+function toggleMark(i, btn){
+  if(markedSet.has(i)){
+    markedSet.delete(i);
+    btn.classList.remove('on');
+  } else {
+    markedSet.add(i);
+    btn.classList.add('on');
+  }
+  updateMarkedUI();
+}
+function updateMarkedUI(){
+  $('markedCount').textContent = markedSet.size;
+  $('markedInfo').textContent = markedSet.size ? `${markedSet.size} marked` : '';
+}
+function exportMarked(){
+  if(!markedSet.size){ alert('No marked questions to export.'); return; }
+  const stamp = ts();
+  const list = [...markedSet].sort((a,b)=>a-b).map(idx=>{
+    const q = currentQuiz[idx];
+    const ch = CHAPTERS.find(c=>c.id===q.chapter);
+    let answer;
+    if(q.type==='truefalse'){
+      answer = q.ans ? 'True' : 'False';
+    } else if(q.type==='single'){
+      answer = q.ans;
+    } else {
+      answer = q.ans.join('');
+    }
+    return {
+      idx: idx+1,
+      type: tagName(q.type),
+      chapter: ch ? ch.title : 'Ch '+q.chapter,
+      q: q.q,
+      answer: answer,
+      opts: q.type==='truefalse' ? [{text:'True',correct:null},{text:'False',correct:null}]
+            : q.opts.map((o,j)=>({text:letter(j)+'. '+o,correct:null})),
+      exp: q.exp
+    };
+  });
+  const items = list.map((item,i)=>`
+    <div class="q">
+      <div class="stem">${i+1}. <span class="tag">${item.type}</span> <span class="ch">${item.chapter}</span></div>
+      <div class="qtxt">${item.q}</div>
+      <div class="opts">${item.opts.map(o=>`<div class="opt">${o.text}</div>`).join('')}</div>
+      <div class="exp"><b>Answer:</b> ${item.answer}<br><b>Explanation:</b> ${item.exp}</div>
+    </div>`).join('');
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marked Questions · ${stamp}</title>
+<style>
+  :root{--primary:#1F4E79;--primary2:#2E74B5;--ok:#1e8449;--gray:#595959;--line:#dbe3ec;--accent:#e67e22;}
+  *{box-sizing:border-box;}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f4f7fb;color:#262626;line-height:1.6;font-size:15px;}
+  .wrap{max-width:880px;margin:0 auto;padding:18px 14px 60px;}
+  header{background:linear-gradient(135deg,var(--accent),#f39c12);color:#fff;padding:18px 22px;border-radius:12px;}
+  header h1{margin:0 0 4px;font-size:20px;}header .sub{opacity:.95;font-size:13px;}
+  section{background:#fff;border-radius:12px;padding:8px 20px 16px;margin-top:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  h2{color:var(--primary);border-bottom:2px solid var(--line);padding-bottom:8px;font-size:17px;}
+  .q{padding:14px 0;border-bottom:1px dashed var(--line);}.q:last-child{border:none;}
+  .stem{font-weight:600;margin-bottom:10px;}.stem .tag{display:inline-block;background:#eaf1f8;color:var(--primary2);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .stem .ch{display:inline-block;background:#fef9e7;color:#f39c12;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .qtxt{margin-bottom:10px;}
+  .opts{display:flex;flex-direction:column;gap:7px;}.opt{padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fff;}
+  .exp{margin-top:10px;padding:10px 12px;background:#f7f9fc;border-left:3px solid var(--primary2);border-radius:4px;font-size:13.5px;}
+  .exp b{color:var(--primary);}footer{color:#888;text-align:center;font-size:12px;margin-top:18px;}
+</style></head><body><div class="wrap">
+<header><h1>Marked Questions</h1><div class="sub">Generated ${stamp} · ${list.length} questions</div></header>
+<section><h2>My Marked Questions (${list.length})</h2>${items}</section>
+<footer>Review these questions later — answers are included for self-study.</footer>
+</div></body></html>`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'marked-questions_' + stamp + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
 }
 
 // ============ Reveal (single & truefalse share radio logic) ============
